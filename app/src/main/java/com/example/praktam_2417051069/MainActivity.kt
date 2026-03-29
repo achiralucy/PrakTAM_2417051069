@@ -125,7 +125,8 @@ fun StudentRowItem(student: StudentPlanner) {
                 )
                 Text(
                     text = student.deadline,
-                    style = MaterialTheme.typography.bodySmall
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyMedium
                 )
             }
         }
@@ -140,7 +141,10 @@ fun DetailScreen(studentplanner: StudentPlanner) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface
+        )
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
 
@@ -174,7 +178,7 @@ fun DetailScreen(studentplanner: StudentPlanner) {
 
                 Text(
                     text = studentplanner.nama,
-                    style = MaterialTheme.typography.headlineSmall,
+                    style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold
                 )
 
