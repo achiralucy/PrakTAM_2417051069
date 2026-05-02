@@ -4,16 +4,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -23,20 +19,16 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
-
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.composable
 import androidx.navigation.NavController
 import androidx.navigation.NavHostController
-
+import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-
 import com.example.praktam_2417051069.model.StudentPlanner
-import com.example.praktam_2417051069.model.StudentSource
+import com.example.praktam_2417051069.network.RetrofitClient
 import com.example.praktam_2417051069.ui.theme.PrakTAM_2417051069Theme
 
 class MainActivity : ComponentActivity() {
@@ -54,85 +46,119 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun AppNavigation(navController: NavHostController) {
-    NavHost(
-        navController = navController,
-        startDestination = "home"
-    ) {
-        composable("home") {
-            DaftarTugas(navController)
-        }
+    var students by remember { mutableStateOf<List<StudentPlanner>>(emptyList()) }
 
+    NavHost(navController = navController, startDestination = "home") {
+        composable("home") {
+            DaftarTugas(navController) {
+                students = it
+            }
+        }
         composable("detail/{nama}") { backStackEntry ->
             val nama = backStackEntry.arguments?.getString("nama")
-            val student = StudentSource.dummystudentplanner.find {
-                it.nama == nama
-            }
+            val student = students.find { it.nama == nama }
             if (student != null) {
-                DetailScreen(
-                    studentplanner = student,
-                    navController = navController,
-                    isFullScreen = true
+                DetailScreen(student, navController)
+            }
+        }
+    }
+}
+
+@Composable
+fun DaftarTugas(
+    navController: NavController,
+    onLoaded: (List<StudentPlanner>) -> Unit
+) {
+    var students by remember { mutableStateOf<List<StudentPlanner>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
+    var isError by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        try {
+            students = RetrofitClient.instance.getStudents()
+            onLoaded(students)
+            isLoading = false
+            isError = false
+        } catch (_: Exception) {
+            isLoading = false
+            isError = true
+        }
+    }
+
+    if (isLoading) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else if (isError || students.isEmpty()) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(32.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = "Gagal Memuat Data",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.Red
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Pastikan koneksi internet Anda menyala",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray
                 )
             }
         }
-    }
-}
-
-@Composable
-fun DaftarTugas(navController: NavController) {
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxSize()
-            .statusBarsPadding(),
-        contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        item {
-            Text(
-                text = "Highlight Tugas",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(StudentSource.dummystudentplanner) { student ->
-                    StudentRowItem(student, navController)
+    } else {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding(),
+            contentPadding = PaddingValues(16.dp),
+            verticalArrangement = Arrangement.spacedBy(25.dp)
+        ) {
+            item {
+                Text(
+                    "Tugas Prioritas",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    items(students.take(5)) { student ->
+                        StudentHorizontalItem(student)
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    "Daftar Semua Tugas",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold
+                )
+            }
 
-            Text(
-                text = "Daftar Tugas",
-                style = MaterialTheme.typography.titleLarge,
-                fontWeight = FontWeight.Bold
-            )
-        }
-
-        items(StudentSource.dummystudentplanner) { student ->
-            StudentItem(student = student, navController = navController)
+            items(students) { student ->
+                StudentItem(student, navController)
+            }
         }
     }
 }
 
 @Composable
-fun StudentRowItem(student: StudentPlanner, navController: NavController) {
+fun StudentHorizontalItem(student: StudentPlanner) {
     Card(
-        modifier = Modifier
-            .width(160.dp)
-            .clickable {
-                navController.navigate("detail/${student.nama}")
-            },
+        modifier = Modifier.width(160.dp),
         shape = RoundedCornerShape(12.dp),
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column {
-            Image(
-                painter = painterResource(id = student.gambar),
+            AsyncImage(
+                model = student.imageUrl,
                 contentDescription = student.nama,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -140,8 +166,15 @@ fun StudentRowItem(student: StudentPlanner, navController: NavController) {
                 contentScale = ContentScale.Crop
             )
             Column(modifier = Modifier.padding(8.dp)) {
-                Text(student.nama, fontWeight = FontWeight.Bold)
-                Text(student.deadline, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    student.nama,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1
+                )
+                Text(
+                    "Deadline: ${student.deadline}",
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
         }
     }
@@ -155,11 +188,31 @@ fun StudentItem(student: StudentPlanner, navController: NavController) {
             .clickable {
                 navController.navigate("detail/${student.nama}")
             },
-        shape = RoundedCornerShape(12.dp)
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            Text(student.nama, fontWeight = FontWeight.Bold)
-            Text("Deadline: ${student.deadline}")
+            AsyncImage(
+                model = student.imageUrl,
+                contentDescription = student.nama,
+                placeholder = painterResource(id = R.drawable.ic_launcher_background),
+                error = painterResource(id = R.drawable.ic_launcher_background),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            Text(
+                student.nama,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                "Deadline: ${student.deadline}",
+                style = MaterialTheme.typography.bodyMedium
+            )
         }
     }
 }
@@ -167,105 +220,59 @@ fun StudentItem(student: StudentPlanner, navController: NavController) {
 @Composable
 fun DetailScreen(
     studentplanner: StudentPlanner,
-    navController: NavController,
-    isFullScreen: Boolean = false
+    navController: NavController
 ) {
-    var isFavorite by remember { mutableStateOf(false) }
     var isDone by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    Box(modifier = Modifier.fillMaxWidth()) {
-
+    Box {
         Column(modifier = Modifier.padding(16.dp)) {
-
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                elevation = CardDefaults.cardElevation(6.dp)
+            AsyncImage(
+                model = studentplanner.imageUrl,
+                contentDescription = studentplanner.nama,
+                placeholder = painterResource(id = R.drawable.ic_launcher_background),
+                error = painterResource(id = R.drawable.ic_launcher_background),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp),
+                contentScale = ContentScale.Crop
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                studentplanner.nama,
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleLarge
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text("Deadline: ${studentplanner.deadline}")
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(studentplanner.deskripsi)
+            Spacer(modifier = Modifier.height(16.dp))
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        isLoading = true
+                        delay(2000)
+                        isDone = !isDone
+                        snackbarHostState.showSnackbar("Status diubah")
+                        isLoading = false
+                    }
+                },
+                enabled = !isLoading
             ) {
-                Column {
-
-                    Box {
-                        Image(
-                            painter = painterResource(id = studentplanner.gambar),
-                            contentDescription = studentplanner.nama,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(200.dp),
-                            contentScale = ContentScale.Crop
-                        )
-
-                        IconButton(
-                            onClick = { isFavorite = !isFavorite },
-                            modifier = Modifier.align(Alignment.TopEnd)
-                        ) {
-                            Icon(
-                                imageVector = if (isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                                contentDescription = null,
-                                tint = if (isFavorite) Color.Red else Color.White
-                            )
-                        }
-                    }
-
-                    Column(modifier = Modifier.padding(12.dp)) {
-
-                        Text(studentplanner.nama, fontWeight = FontWeight.Bold)
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text("Deadline: ${studentplanner.deadline}")
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(studentplanner.deskripsi)
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Button(
-                            onClick = {
-                                coroutineScope.launch {
-                                    isLoading = true
-                                    delay(2000)
-                                    isDone = !isDone
-                                    snackbarHostState.showSnackbar(
-                                        if (isDone)
-                                            "${studentplanner.nama} telah ditandai selesai"
-                                        else
-                                            "Status dibatalkan"
-                                    )
-                                    isLoading = false
-                                }
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            enabled = !isLoading
-                        ) {
-                            if (isLoading) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    color = MaterialTheme.colorScheme.onPrimary,
-                                    strokeWidth = 2.dp
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text("Memproses...")
-                            } else {
-                                Text(if (isDone) "Selesai" else "Tandai Selesai")
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Button(
-                            onClick = {
-                                navController.popBackStack()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text("Kembali")
-                        }
-                    }
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                } else {
+                    Text(if (isDone) "Selesai" else "Tandai Selesai")
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = { navController.popBackStack() }) {
+                Text("Kembali")
+            }
         }
-
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier.align(Alignment.BottomCenter)
