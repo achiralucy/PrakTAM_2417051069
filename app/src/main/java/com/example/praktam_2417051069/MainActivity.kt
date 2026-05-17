@@ -27,8 +27,9 @@ import androidx.navigation.NavHostController
 import coil.compose.AsyncImage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.example.praktam_2417051069.model.StudentPlanner
-import com.example.praktam_2417051069.network.RetrofitClient
+import com.example.praktam_2417051069.data.model.StudentPlanner
+import com.example.praktam_2417051069.data.api.RetrofitClient
+import com.example.praktam_2417051069.data.repository.Studentrepository
 import com.example.praktam_2417051069.ui.theme.PrakTAM_2417051069Theme
 
 class MainActivity : ComponentActivity() {
@@ -67,22 +68,19 @@ fun AppNavigation(navController: NavHostController) {
 @Composable
 fun DaftarTugas(
     navController: NavController,
-    onLoaded: (List<StudentPlanner>) -> Unit
+    onStudentsLoaded: (List<StudentPlanner>) -> Unit
 ) {
     var students by remember { mutableStateOf<List<StudentPlanner>>(emptyList()) }
     var isLoading by remember { mutableStateOf(true) }
     var isError by remember { mutableStateOf(false) }
+    val repository = remember { Studentrepository() }
 
     LaunchedEffect(Unit) {
-        try {
-            students = RetrofitClient.instance.getStudents()
-            onLoaded(students)
-            isLoading = false
-            isError = false
-        } catch (_: Exception) {
-            isLoading = false
-            isError = true
-        }
+        isLoading = true
+        students = repository.getStudents()
+        onStudentsLoaded(students)
+        isLoading = false
+        isError = students.isEmpty()
     }
 
     if (isLoading) {
