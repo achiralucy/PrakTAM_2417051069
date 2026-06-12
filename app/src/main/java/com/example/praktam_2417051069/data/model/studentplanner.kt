@@ -3,15 +3,15 @@ package com.example.praktam_2417051069.data.model
 import com.google.gson.annotations.SerializedName
 
 data class StudentPlanner(
-    @SerializedName("nama")
+    @SerializedName("judul")
     val nama: String,
 
-    @SerializedName("deadline")
+    @SerializedName("kategori")
     val deadline: String,
 
-    @SerializedName("deskripsi")
+    @SerializedName("isi")
     val deskripsi: String,
 
-    @SerializedName("image_Url")
+    @SerializedName("image_url")
     val imageUrl: String
 )
