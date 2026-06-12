@@ -32,7 +32,6 @@ object NotificationHelper {
         }
     }
 
-    // Notifikasi langsung (tetap ada untuk keperluan lain)
     fun showDeadlineReminder(context: Context, judulTugas: String, deadline: String, id: Int) {
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -60,12 +59,12 @@ object NotificationHelper {
             return
         }
 
-        // Set alarm jam 08:00 di hari deadline
+
         val calendar = Calendar.getInstance().apply {
             add(Calendar.MINUTE, 1)
         }
 
-        // Kalau deadline sudah lewat, tidak perlu dijadwalkan
+
         if (calendar.timeInMillis < System.currentTimeMillis()) return
 
         val intent = Intent(context, DeadlineReceiver::class.java).apply {
@@ -81,7 +80,7 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Gunakan setExactAndAllowWhileIdle supaya alarm tetap jalan meski HP idle
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             alarmManager.setExactAndAllowWhileIdle(
                 AlarmManager.RTC_WAKEUP,

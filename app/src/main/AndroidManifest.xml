@@ -29,7 +29,6 @@
             </intent-filter>
         </activity>
 
-        <!-- Receiver untuk alarm deadline -->
         <receiver
             android:name=".notification.DeadlineReceiver"
             android:exported="false" />
